@@ -1,0 +1,28 @@
+notes_task:
+  description: |
+    Read the PDF context and produce structured notes:
+    - TL;DR (3 bullets)
+    - Key claims (with page refs)
+    - Methods (short)
+    - Results (short, with metrics where possible)
+    - Limitations (short)
+  expected_output: "YAML or JSON block with TLDR, Claims, Methods, Results, Limitations."
+
+draft_task:
+  description: |
+    Using the notes, write a blog post:
+    - 900–1200 words
+    - Intro that frames the question/problem
+    - Clear sections with H2/H3
+    - Inline citations like [p.12]
+    - A short ‘Why it matters’ section
+    - ‘Further reading’ list (3 items)
+  expected_output: "Markdown article only."
+
+seo_task:
+  description: |
+    Create SEO metadata:
+    - title (<=60 chars), slug, meta_description (<=155 chars)
+    - 5–7 tags
+    - Improve headings (H2/H3) if needed
+  expected_output: "JSON with {title, slug, meta_description, tags, updated_headings?}."
