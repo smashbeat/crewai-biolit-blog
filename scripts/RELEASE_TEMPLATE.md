@@ -20,4 +20,12 @@ make setup
 make run PDF=src/data/input/example.pdf
 make docker-build
 make docker-run PDF=src/data/input/example.pdf
+```
+
+## 📜 Known Issues / To-Do
+- Item 1
+
+## 🏷 Version Metadata
+- **Tag**: {{TAG}}
+- **Release date**: {{DATE}}
 
