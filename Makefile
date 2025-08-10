@@ -47,24 +47,6 @@ docker-run:
 	@echo "📄 Latest file:" && ls -1t $(OUTDIR) | head -n1 | sed 's/^/ - /'
 
 release:
-	@if [ -z "$(TAG)" ]; then \
-		echo "❌ Please provide TAG=vX.Y.Z"; \
-		exit 1; \
-	fi
-	@if [ -n "$$(git status --porcelain)" ]; then \
-		echo "❌ Uncommitted changes. Commit first."; \
-		exit 1; \
-	fi
-	git tag -a $(TAG) -m "Release $(TAG)"
-	git push origin $(TAG)
-	@which gh >/dev/null 2>&1 || { echo "❌ Install GitHub CLI: brew install gh"; exit 1; }
-	@gh auth status >/dev/null 2>&1 || { echo "❌ Run: gh auth login"; exit 1; }
-	@if [ -f scripts/RELEASE_TEMPLATE.md ]; then \
-		gh release create $(TAG) --title "$(TAG)" --notes-file scripts/RELEASE_TEMPLATE.md; \
-	else \
-		gh release create $(TAG) --title "$(TAG)" --notes "Release $(TAG)"; \
-	fi
-release:
 	@if [ -z "$(TAG)" ]; then echo "❌ Please provide TAG=vX.Y.Z"; exit 1; fi
 	@if [ -n "$$(git status --porcelain)" ]; then echo "❌ Uncommitted changes. Commit first."; exit 1; fi
 	git tag -a $(TAG) -m "Release $(TAG)"
