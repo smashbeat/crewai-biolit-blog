@@ -1,0 +1,52 @@
+name: Content Pipeline (PDF → Markdown → PR)
+
+on:
+  push:
+    paths:
+      - "src/data/input/**/*.pdf"
+      - "src/agents.yaml"
+      - "src/tasks.yaml"
+  workflow_dispatch: {}
+
+jobs:
+  build-content:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ vars.PYTHON_VERSION || '3.13' }}
+
+      - name: Python deps
+        run: make setup
+
+      - name: Generate & assemble (all PDFs)
+        run: |
+          for pdf in $(git ls-files src/data/input/*.pdf); do
+            .venv/bin/python -m src.main --pdf "$pdf" --top-k 8 --quiet
+            make assemble
+          done
+
+      - name: Sync into Astro content & normalize
+        run: |
+          make site-sync
+          make content-check || true
+
+      - name: Build Astro (validate)
+        working-directory: apps/site
+        run: |
+          npm ci
+          npm run build
+
+      - name: Create PR with content updates
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(content): regenerate posts from PDFs"
+          title: "Content update: PDFs → posts"
+          body: "Automated content pipeline."
+          branch: "content/update-${{ github.run_id }}"
+          base: ${{ github.ref_name }}
+          add-paths: |
+            apps/site/src/content/posts/**

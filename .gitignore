@@ -4,3 +4,18 @@ __pycache__/
 .env
 src/data/vectorstore/
 .DS_Store
+
+# Python
+.venv/
+__pycache__/
+.env
+
+# Pipeline outputs & vector store
+src/data/output/
+src/data/vectorstore/
+src/data/input/current.txt
+
+# Astro app
+apps/site/node_modules/
+apps/site/dist/
+apps/site/.astro/

@@ -1,28 +1,35 @@
-notes_task:
+# A simple list is fine; crew.py also accepts { tasks: [...] }
+- id: notes
+  agent: researcher
   description: |
-    Read the PDF context and produce structured notes:
+    Read the PDF context (via pdf_rag_search) and produce structured notes:
     - TL;DR (3 bullets)
     - Key claims (with page refs)
     - Methods (short)
     - Results (short, with metrics where possible)
     - Limitations (short)
-  expected_output: "YAML or JSON block with TLDR, Claims, Methods, Results, Limitations."
+  expected_output: "Markdown notes with TLDR, Claims, Methods, Results, Limitations."
 
-draft_task:
+- id: post
+  agent: writer
   description: |
     Using the notes, write a blog post:
     - 900–1200 words
-    - Intro that frames the question/problem
-    - Clear sections with H2/H3
+    - Intro framing the question/problem
+    - H2/H3 sections
     - Inline citations like [p.12]
-    - A short ‘Why it matters’ section
-    - ‘Further reading’ list (3 items)
-  expected_output: "Markdown article only."
+    - Short “Why it matters”
+    - “Further reading” (3 items)
+    IMPORTANT: Return pure Markdown only. Do NOT use triple backticks or code fences anywhere (including FAQs).
+  expected_output: "Markdown article only (no code fences, no front matter)."
 
-seo_task:
+# Include 'json' in the id so crew.py saves it with .json
+- id: seo-json
+  agent: seo_editor
   description: |
     Create SEO metadata:
     - title (<=60 chars), slug, meta_description (<=155 chars)
     - 5–7 tags
     - Improve headings (H2/H3) if needed
-  expected_output: "JSON with {title, slug, meta_description, tags, updated_headings?}."
+  expected_output: "Valid JSON with {title, slug, meta_description, tags, updated_headings?}."
+
