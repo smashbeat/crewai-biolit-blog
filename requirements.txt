@@ -6,7 +6,6 @@ python-slugify>=8
 PyYAML>=6
 tiktoken
 crewai>=0.51.1
-crewai-tools>=0.14.0
 langchain>=0.2.12
 langchain-community>=0.2.11
 pydantic>=2.7
