@@ -1,12 +1,6 @@
-openai>=1.35
-chromadb>=0.5.5
-pypdf>=4
-python-slugify>=8
-PyYAML>=6
-tiktoken
-langchain>=0.2.12
-langchain-community>=0.2.11
-pydantic>=2.7
-pyyaml>=6.0.1
-jsonschema>=4.22.0
+openai>=1.40,<2
+pypdf>=4.2,<5
+chromadb>=0.5.3,<0.6
+pyyaml>=6.0.2,<7
+python-dotenv>=1.0.1,<2
 
