@@ -1,11 +1,9 @@
-crewai>=0.60
 openai>=1.35
 chromadb>=0.5.5
 pypdf>=4
 python-slugify>=8
 PyYAML>=6
 tiktoken
-crewai>=0.51.1
 langchain>=0.2.12
 langchain-community>=0.2.11
 pydantic>=2.7
