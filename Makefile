@@ -19,6 +19,8 @@ endif
 
 .PHONY: setup run clean docker-build docker-run
 
+DATE := $(shell date +%F)
+
 setup:
 	python3 -m venv $(VENV)
 	$(PIP) install --upgrade pip
@@ -53,7 +55,8 @@ release:
 	git push origin $(TAG)
 	@which gh >/dev/null 2>&1 || { echo "❌ Install GitHub CLI: brew install gh"; exit 1; }
 	@gh auth status >/dev/null 2>&1 || { echo "❌ Run: gh auth login"; exit 1; }
-	gh release create $(TAG) --title "$(TAG)" --notes-file scripts/RELEASE_TEMPLATE.md
+	sed -e 's/{{TAG}}/$(TAG)/g' -e 's/{{DATE}}/$(DATE)/g' scripts/RELEASE_TEMPLATE.md > /tmp/release_$(TAG).md
+	gh release create $(TAG) --title "$(TAG)" --notes-file /tmp/release_$(TAG).md
 	@echo "✅ GitHub Release created for $(TAG)"
 
 .PHONY: commit-release
