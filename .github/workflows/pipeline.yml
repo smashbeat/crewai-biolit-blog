@@ -11,23 +11,43 @@ on:
 jobs:
   build-content:
     runs-on: ubuntu-latest
+    env:
+      PYTHON_VERSION: ${{ vars.PYTHON_VERSION || '3.13' }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ vars.PYTHON_VERSION || '3.13' }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
-      - name: Python deps
+      - name: Python deps (venv)
         run: make setup
 
-      - name: Generate & assemble (all PDFs)
+      - name: Generate & assemble (changed PDFs or all if none detected)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
+        shell: bash
         run: |
-          for pdf in $(git ls-files src/data/input/*.pdf); do
-            .venv/bin/python -m src.main --pdf "$pdf" --top-k 8 --quiet
-            make assemble
-          done
+          set -euo pipefail
+          # gather PDFs (changed or all)
+          CHANGED=$(git diff --name-only --diff-filter=AMR HEAD~1..HEAD | grep -E '^src/data/input/.*\.pdf$' || true)
+          if [[ -z "$CHANGED" ]]; then
+            PDFS=$(ls src/data/input/*.pdf 2>/dev/null || true)
+          else
+            PDFS="$CHANGED"
+          fi
+          if [[ -z "$PDFS" ]]; then
+            echo "No PDFs to process."
+          else
+            for pdf in $PDFS; do
+              echo "→ Processing $pdf"
+              .venv/bin/python -m src.main --pdf "$pdf" --top-k 8 --quiet
+              make assemble
+            done
+          fi
 
       - name: Sync into Astro content & normalize
         run: |
@@ -50,3 +70,4 @@ jobs:
           base: ${{ github.ref_name }}
           add-paths: |
             apps/site/src/content/posts/**
+
