@@ -77,3 +77,42 @@ commit-release:
 	# 3) Tag + GitHub Release (reuses your existing 'release' rule)
 	$(MAKE) release TAG=$(TAG)
 
+assemble:
+	@slug=$$(basename $$(ls -1t src/data/output/*-post.md | head -n1) | sed 's/-post\.md$$//'); \
+	post=src/data/output/$$slug-post.md; \
+	seo=src/data/output/$$slug-seo-json.json; \
+	out=src/data/output/$$slug.md; \
+	$(PYTHON) -m src.utils.assemble $$post $$seo $$out && echo "📄 Final blog: $$out"
+
+site-sync:
+	@echo "→ Syncing final posts to Astro content collection"
+	@mkdir -p apps/site/src/content/posts
+	# copy only final assembled posts (exclude notes and drafts)
+	@find src/data/output -maxdepth 1 -type f -name "*.md" ! -name "*-post.md" ! -name "*-notes.md" \
+		-exec cp {} apps/site/src/content/posts/ \;
+	@echo "✓ Synced"
+
+dev:
+	make run PDF=$(PDF) QUIET=0 && make assemble && make site-sync && (cd apps/site && npm run dev)
+content-normalize:
+	@$(PYTHON) scripts/clean_markdown.py apps/site/src/content/posts/*.md || true
+
+# Normalize all Markdown in the Astro content dir
+content-normalize:
+	@$(PYTHON) scripts/clean_markdown.py apps/site/src/content/posts/*.md || true
+
+# Copy final assembled posts into Astro and normalize them
+site-sync:
+	@echo "→ Syncing final posts to Astro content collection"
+	@mkdir -p apps/site/src/content/posts
+	@find src/data/output -maxdepth 1 -type f -name "*.md" ! -name "*-post.md" ! -name "*-notes.md" \
+		-exec cp {} apps/site/src/content/posts/ \;
+	@$(MAKE) content-normalize
+	@echo "✓ Synced"
+
+# Quick guard you can also use in CI later
+content-check:
+	@if grep -En '^\s*```' apps/site/src/content/posts/*.md; then \
+	  echo "❌ Found triple backticks in posts"; exit 1; \
+	else echo "✅ No fenced posts found"; fi
+

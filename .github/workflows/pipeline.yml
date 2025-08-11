@@ -1,0 +1,73 @@
+name: Content Pipeline (PDF → Markdown → PR)
+
+on:
+  push:
+    paths:
+      - "src/data/input/**/*.pdf"
+      - "src/agents.yaml"
+      - "src/tasks.yaml"
+  workflow_dispatch: {}
+
+jobs:
+  build-content:
+    runs-on: ubuntu-latest
+    env:
+      PYTHON_VERSION: ${{ vars.PYTHON_VERSION || '3.13' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Python deps (venv)
+        run: make setup
+
+      - name: Generate & assemble (changed PDFs or all if none detected)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # gather PDFs (changed or all)
+          CHANGED=$(git diff --name-only --diff-filter=AMR HEAD~1..HEAD | grep -E '^src/data/input/.*\.pdf$' || true)
+          if [[ -z "$CHANGED" ]]; then
+            PDFS=$(ls src/data/input/*.pdf 2>/dev/null || true)
+          else
+            PDFS="$CHANGED"
+          fi
+          if [[ -z "$PDFS" ]]; then
+            echo "No PDFs to process."
+          else
+            for pdf in $PDFS; do
+              echo "→ Processing $pdf"
+              .venv/bin/python -m src.main --pdf "$pdf" --top-k 8 --quiet
+              make assemble
+            done
+          fi
+
+      - name: Sync into Astro content & normalize
+        run: |
+          make site-sync
+          make content-check || true
+
+      - name: Build Astro (validate)
+        working-directory: apps/site
+        run: |
+          npm ci
+          npm run build
+
+      - name: Create PR with content updates
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(content): regenerate posts from PDFs"
+          title: "Content update: PDFs → posts"
+          body: "Automated content pipeline."
+          branch: "content/update-${{ github.run_id }}"
+          base: ${{ github.ref_name }}
+          add-paths: |
+            apps/site/src/content/posts/**
+
