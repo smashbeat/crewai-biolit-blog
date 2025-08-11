@@ -55,3 +55,22 @@ release:
 	@gh auth status >/dev/null 2>&1 || { echo "❌ Run: gh auth login"; exit 1; }
 	gh release create $(TAG) --title "$(TAG)" --notes-file scripts/RELEASE_TEMPLATE.md
 	@echo "✅ GitHub Release created for $(TAG)"
+
+.PHONY: commit-release
+
+# Usage:
+#   make commit-release MSG="my changes" TAG=v0.2.1
+commit-release:
+	@if [ -z "$(MSG)" ] || [ -z "$(TAG)" ]; then \
+		echo "❌ Usage: make commit-release MSG=\"commit message\" TAG=vX.Y.Z"; \
+		exit 1; \
+	fi
+	# 1) Stage & commit
+	git add -A
+	@git commit -m "$(MSG)" || echo "ℹ️ No changes to commit."
+	# 2) Push current branch
+	BRANCH=$$(git rev-parse --abbrev-ref HEAD); \
+	git push origin $$BRANCH
+	# 3) Tag + GitHub Release (reuses your existing 'release' rule)
+	$(MAKE) release TAG=$(TAG)
+
