@@ -38,6 +38,9 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::134856927288:role/github-oidc-deploy
 
+      - name: Who am I
+        run: aws sts get-caller-identity
+
       - name: Sync to S3
         run: |
           aws s3 sync apps/site/dist "s3://${S3_BUCKET}/" --delete
