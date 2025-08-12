@@ -27,14 +27,16 @@ jobs:
       - name: Build Astro
         working-directory: apps/site
         run: |
-          npm ci
+          echo "PWD=$(pwd)"
+          ls -la
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
           npm run build
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::134856927288:role/github-oidc-deploy:role/github-oidc-deploy
+          role-to-assume: arn:aws:iam::134856927288:role/github-oidc-deploy
 
       - name: Sync to S3
         run: |
