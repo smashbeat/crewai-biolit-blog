@@ -1,23 +1,10 @@
 ---
 import Base from "../../layouts/Base.astro";
-<<<<<<< HEAD
-import { getCollection, getEntryById } from "astro:content";
-=======
 import { getCollection, getEntry } from "astro:content";
->>>>>>> ffc14ea (fix(site): use astro:content getEntry(slug) and pass params.slug)
 
 export async function getStaticPaths() {
   const posts = await getCollection("posts");
   return posts.map((post) => ({
-<<<<<<< HEAD
-    params: { slug: post.slug },   // <-- REQUIRED
-    props: { id: post.id },        // pass a small serializable prop
-  }));
-}
-
-const { id } = Astro.props;
-const post = await getEntryById("posts", id);
-=======
     params: { slug: post.slug },
   }));
 }
@@ -27,7 +14,6 @@ const post = await getEntry("posts", slug);
 if (!post) {
   throw new Error(`Post not found for slug: ${slug}`);
 }
->>>>>>> ffc14ea (fix(site): use astro:content getEntry(slug) and pass params.slug)
 const { Content } = await post.render();
 const { title, description, tags = [] } = post.data;
 ---
