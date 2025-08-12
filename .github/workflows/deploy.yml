@@ -36,7 +36,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::134856927288:role/github-oidc-deploy:role/github-oidc-deploy
+          role-to-assume: arn:aws:iam::134856927288:role/github-oidc-deploy
 
       - name: Sync to S3
         run: |
