@@ -1,0 +1,29 @@
+---
+const { title = "Biolit", description = "" } = Astro.props;
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title ? `${title} · Biolit` : "Biolit"}</title>
+    {description && <meta name="description" content={description} />}
+    <style>
+      :root { --max: 880px; --fg: #0f172a; --muted:#64748b; --link:#2563eb; }
+      body{font:16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--fg); margin:0;}
+      header, main { max-width: var(--max); margin: 0 auto; padding: 24px; }
+      a{color:var(--link); text-decoration:none} a:hover{text-decoration:underline}
+      .muted{color:var(--muted)}
+      .tag{display:inline-block;padding:.1rem .5rem;border:1px solid #e2e8f0;border-radius:999px;margin-right:.4rem;font-size:.85rem}
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="/"><h1>Biolit</h1></a>
+      <p class="muted">Readable, SEO-ready posts from PDFs.</p>
+    </header>
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>
+

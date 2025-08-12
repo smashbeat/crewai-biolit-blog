@@ -1,0 +1,13 @@
+---
+import Base from "../layouts/Base.astro";
+import { getCollection } from "astro:content";
+const all = await getCollection("posts");
+const tags = Array.from(new Set(all.flatMap(p => p.data.tags||[]))).sort();
+---
+<Base title="Tags">
+  <h2>Tags</h2>
+  <ul>
+    {tags.map(t => <li><a href={`/tags/${encodeURIComponent(t)}/`}>{t}</a></li>)}
+  </ul>
+</Base>
+
