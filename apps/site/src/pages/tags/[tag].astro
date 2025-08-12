@@ -4,19 +4,22 @@ import { getCollection } from "astro:content";
 
 export async function getStaticPaths() {
   const all = await getCollection("posts");
-  const tags = Array.from(new Set(all.flatMap(p => p.data.tags||[])));
-  return tags.map(t => ({ params: { tag: t } }));
+  const tags = Array.from(new Set(all.flatMap(p => p.data.tags || [])));
+  return tags.map(tag => ({ params: { tag } }));
 }
 
 const { tag } = Astro.params;
-const posts = (await getCollection("posts")).filter(p => (p.data.tags||[]).includes(tag));
+const all = await getCollection("posts");
+const posts = all.filter(p => (p.data.tags || []).includes(tag));
 ---
-<Base title={`Tag: ${tag}`}>
-  <h2>Tag: {tag}</h2>
+
+<Base title={`#${tag}`}>
+  <h1>Posts tagged “{tag}”</h1>
   <ul>
     {posts.map(p => (
-      <li><a href={`/posts/${p.data.slug}/`}>{p.data.title}</a></li>
+      <li>
+        <a href={`/posts/${p.slug}/`}>{p.data.title ?? p.slug}</a>
+      </li>
     ))}
   </ul>
 </Base>
-
