@@ -37,10 +37,12 @@ jobs:
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::134856927288:role/github-oidc-deploy
+	  audience: sts.amazonaws.com
 
       - name: Sync to S3
-        run: |
-          aws s3 sync apps/site/dist "s3://${S3_BUCKET}/" --delete
+	  working-directory: apps/site
+  	  run: |
+    	    aws s3 sync dist "s3://$S3_BUCKET" --delete --cache-control max-age=60
 
       - name: Invalidate CloudFront (optional)
         if: ${{ env.CF_DISTRIBUTION_ID != '' }}
