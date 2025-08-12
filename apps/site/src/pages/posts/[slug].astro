@@ -1,22 +1,34 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { getCollection } from "astro:content";
-import { MarkdownInstance } from "astro";
+import { getCollection, getEntryById } from "astro:content";
 
 export async function getStaticPaths() {
   const posts = await getCollection("posts");
-  return posts.map((p) => ({ params: { slug: p.data.slug }, props: { entry: p } }));
+  return posts.map((post) => ({
+    params: { slug: post.slug },   // <-- REQUIRED
+    props: { id: post.id },        // pass a small serializable prop
+  }));
 }
 
-const { entry } = Astro.props as { entry: MarkdownInstance<Record<string, any>> };
-const { Content } = await entry.render();
-const fm = entry.data;
+const { id } = Astro.props;
+const post = await getEntryById("posts", id);
+const { Content } = await post.render();
+const { title, description, tags = [] } = post.data;
 ---
-<Base title={fm.title} description={fm.description}>
-  <article>
-    <h1>{fm.title}</h1>
-    {fm.tags?.map(t => <a class="tag" href={`/tags/${encodeURIComponent(t)}/`}>{t}</a>)}
+
+<Base title={title}>
+  <article class="prose">
+    <h1>{title}</h1>
+    {description && <p class="text-gray-600">{description}</p>}
+    {tags.length > 0 && (
+      <p>
+        {tags.map((t, i) => (
+          <>
+            <a href={`/tags/${encodeURIComponent(t)}/`}>{t}</a>{i < tags.length - 1 ? ", " : ""}
+          </>
+        ))}
+      </p>
+    )}
     <Content />
   </article>
 </Base>
-
