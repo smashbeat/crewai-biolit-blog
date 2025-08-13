@@ -3,20 +3,50 @@ import Base from "../../layouts/Base.astro";
 import { getCollection } from "astro:content";
 
 export async function getStaticPaths() {
+  // Local helper for the export scope
+  const slugify = (s) => String(s)
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+
   const all = await getCollection("posts");
-  const tags = Array.from(new Set(all.flatMap(p => p.data.tags||[])));
-  return tags.map(t => ({ params: { tag: t } }));
+  const tags = Array.from(
+    new Set(
+      all.flatMap(p => (p.data.tags || [])
+        .map(t => String(t).trim())
+        .filter(Boolean))
+    )
+  );
+  const slugs = Array.from(new Set(tags.map(slugify))).filter(Boolean);
+  return slugs.map(tag => ({ params: { tag } }));
 }
 
 const { tag } = Astro.params;
-const posts = (await getCollection("posts")).filter(p => (p.data.tags||[]).includes(tag));
+const all = await getCollection("posts");
+
+// Separate helper for the page scope
+function slugifyPage(s) {
+  return String(s)
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
+const displayTag =
+  all.flatMap(p => p.data.tags || []).find(t => slugifyPage(t) === tag) ?? tag;
+
+const posts = all.filter(p => (p.data.tags || []).some(t => slugifyPage(t) === tag));
 ---
-<Base title={`Tag: ${tag}`}>
-  <h2>Tag: {tag}</h2>
+
+<Base title={`#${displayTag}`}>
+  <h1>Posts tagged “{displayTag}”</h1>
   <ul>
     {posts.map(p => (
-      <li><a href={`/posts/${p.data.slug}/`}>{p.data.title}</a></li>
+      <li><a href={`/posts/${p.slug}/`}>{p.data.title ?? p.slug}</a></li>
     ))}
   </ul>
 </Base>
-
