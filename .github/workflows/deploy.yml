@@ -27,9 +27,7 @@ jobs:
       - name: Build Astro
         working-directory: apps/site
         run: |
-          echo "PWD=$(pwd)"
-          ls -la
-          npm install --no-audit --no-fund
+          npm ci || npm i
           npm run build
 
       - name: Configure AWS credentials via OIDC
@@ -41,9 +39,8 @@ jobs:
       - name: Who am I
         run: aws sts get-caller-identity
 
-      - name: Sync to S3
-        run: |
-          aws s3 sync apps/site/dist "s3://${S3_BUCKET}/" --delete
+      - name: Sync to S3 (delete removed files)
+        run: aws s3 sync apps/site/dist s3://$S3_BUCKET --delete
 
       - name: Invalidate CloudFront (optional)
         if: ${{ env.CF_DISTRIBUTION_ID != '' }}
