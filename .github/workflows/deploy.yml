@@ -30,19 +30,36 @@ jobs:
           npm ci || npm i
           npm run build
 
+
+    # HTML first: no-cache so viewers always revalidate
+    - name: Upload HTML with no-cache
+      run: |
+        aws s3 cp apps/site/dist/ s3://$S3_BUCKET \
+          --recursive --exclude "*" --include "*.html" \
+          --cache-control "max-age=0, must-revalidate"
+
+    # Assets: long cache; filenames are hashed by Astro
+    - name: Upload assets with long cache
+      run: |
+        aws s3 sync apps/site/dist/ s3://$S3_BUCKET \
+          --delete --exclude "*.html" \
+          --cache-control "public, max-age=31536000, immutable"
+
+    # Invalidate CF so HTML changes show globally right away
+    - name: Invalidate CloudFront
+      if: env.CF_DISTRIBUTION_ID != ''
+      run: |
+        aws cloudfront create-invalidation \
+          --distribution-id "$CF_DISTRIBUTION_ID" \
+          --paths "/index.html" "/posts/*" "/tags/*" "/rss.xml" "/sitemap-index.xml"
+
+
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::134856927288:role/github-oidc-deploy
 
-      - name: Who am I
-        run: aws sts get-caller-identity
-
       - name: Sync to S3 (delete removed files)
         run: aws s3 sync apps/site/dist s3://$S3_BUCKET --delete
 
-      - name: Invalidate CloudFront (optional)
-        if: ${{ env.CF_DISTRIBUTION_ID != '' }}
-        run: |
-          aws cloudfront create-invalidation --distribution-id "${CF_DISTRIBUTION_ID}" --paths "/*"
