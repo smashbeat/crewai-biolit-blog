@@ -1,51 +1,75 @@
 name: Deploy Site (S3 + CloudFront)
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "main" ]
-  workflow_dispatch: {}
+    branches: [ main ]
+    paths:
+      - 'apps/site/**'
+      - '.github/workflows/deploy.yml'
 
 permissions:
   id-token: write
   contents: read
 
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  S3_BUCKET: ${{ vars.S3_BUCKET }}
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}            # e.g. arn:aws:iam::134856927288:role/github-oidc-deploy
+  CF_DISTRIBUTION_ID: ${{ vars.CF_DISTRIBUTION_ID }} # optional
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      S3_BUCKET: ${{ vars.S3_BUCKET }}
-      CF_DISTRIBUTION_ID: ${{ vars.CF_DISTRIBUTION_ID }}
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ vars.NODE_VERSION || '20' }}
-
-      - name: Build Astro
-        working-directory: apps/site
-        run: |
-          echo "PWD=$(pwd)"
-          ls -la
-          npm install --no-audit --no-fund
-          npm run build
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'apps/site/package-lock.json'
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::134856927288:role/github-oidc-deploy
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: gh-actions-deploy
 
       - name: Who am I
         run: aws sts get-caller-identity
 
-      - name: Sync to S3
+      - name: Build Astro
+        working-directory: apps/site
         run: |
-          aws s3 sync apps/site/dist "s3://${S3_BUCKET}/" --delete
+          npm ci || npm i
+          npm run build
 
-      - name: Invalidate CloudFront (optional)
-        if: ${{ env.CF_DISTRIBUTION_ID != '' }}
+      # HTML first with no-cache (so updates show immediately)
+      - name: Upload HTML with no-cache
         run: |
-          aws cloudfront create-invalidation --distribution-id "${CF_DISTRIBUTION_ID}" --paths "/*"
+          aws s3 cp apps/site/dist/ s3://${S3_BUCKET} \
+            --recursive --exclude "*" --include "*.html" \
+            --cache-control "max-age=0, must-revalidate"
+
+      # Assets with long cache (Astro uses hashed filenames)
+      - name: Upload assets with long cache
+        run: |
+          aws s3 sync apps/site/dist/ s3://${S3_BUCKET} \
+            --delete --exclude "*.html" \
+            --cache-control "public, max-age=31536000, immutable"
+
+      # Optional invalidation if CF is configured
+      - name: Invalidate CloudFront
+        if: env.CF_DISTRIBUTION_ID != ''
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${CF_DISTRIBUTION_ID}" \
+            --paths "/index.html" "/posts/*" "/tags/*" "/rss.xml" "/sitemap-index.xml"
+
