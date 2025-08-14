@@ -1,41 +1,35 @@
---- 
+---
 import Base from "../../layouts/Base.astro";
 import { getCollection } from "astro:content";
-
-function slugify(str) {
-  return String(str)
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+import slugify from "../../utils/slugify";
 
 export async function getStaticPaths() {
-  const all = await getCollection("posts");
-  const tagSet = new Set();
-  for (const p of all) {
+  const posts = await getCollection("posts");
+  const tagSet = new Set<string>();
+  for (const p of posts) {
     for (const t of (p.data.tags || [])) tagSet.add(slugify(t));
   }
   return Array.from(tagSet).map((tag) => ({ params: { tag } }));
 }
 
 const { tag } = Astro.params;
-const allPosts = await getCollection("posts");
-const posts = allPosts.filter(p =>
-  (p.data.tags || []).some(t => slugify(t) === tag)
-);
+const posts = await getCollection("posts");
+const tagged = posts.filter(p => (p.data.tags || []).some(t => slugify(t) === tag));
+const displayTag = tag.replace(/-/g, " ");
 ---
 
-<Base title={`Tag: ${tag}`}>
-  <h1>Tag: {tag}</h1>
-  {posts.length === 0 ? (
-    <p>No posts for this tag yet.</p>
+<Base title={`Tag: ${displayTag}`}>
+  <h1>Tag: {displayTag}</h1>
+  {tagged.length === 0 ? (
+    <p>No posts found.</p>
   ) : (
     <ul>
-      {posts.map(p => (
-        <li><a href={`/posts/${p.slug}/`}>{p.data.title ?? p.slug}</a></li>
+      {tagged.map(p => (
+        <li>
+          <a href={`/posts/${p.slug}/`}>{p.data.title ?? p.slug}</a>
+        </li>
       ))}
     </ul>
   )}
+  <p style="margin-top:2rem"><a href="/">← Back to index</a></p>
 </Base>
