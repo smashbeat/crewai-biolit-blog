@@ -4,14 +4,11 @@ import sys
 from pathlib import Path
 import re
 import yaml
+import glob
 
 DEFAULT_DIR = "apps/site/src/content/posts"
 
 def parse_front_matter(text: str):
-    """
-    Return (fm_dict, body_str) or (None, original_text) if no frontmatter.
-    """
-    # frontmatter must start the file and be fenced with ---
     m = re.match(r'^---\s*\n(.*?)\n---\s*\n(.*)$', text, flags=re.S)
     if not m:
         return None, text
@@ -25,10 +22,7 @@ def parse_front_matter(text: str):
         return {"__invalid__": f"YAML parse error: {e}"}, body
 
 def check_file(p: Path, strict_slug: bool = False):
-    """
-    Validate a single markdown file. Returns (errors:list[str], warnings:list[str]).
-    """
-    errors, warnings = []
+    errors, warnings = [], []
     try:
         text = p.read_text(encoding="utf-8")
     except Exception as e:
@@ -43,20 +37,17 @@ def check_file(p: Path, strict_slug: bool = False):
         errors.append(fm["__invalid__"])
         return errors, warnings
 
-    # title: required non-empty string
     title = fm.get("title")
     if not isinstance(title, str) or not title.strip():
         errors.append("frontmatter.title must be a non-empty string")
 
-    # tags: if present, must be a list of strings
     if "tags" in fm:
         tags = fm["tags"]
-        if not isinstance(tags, list) or not all(isinstance(t, (str,)) for t in tags):
+        if not isinstance(tags, list) or not all(isinstance(t, str) for t in tags):
             errors.append("frontmatter.tags must be an array of strings")
 
-    # discourage slug in FM (Astro generates it); warn by default, error in strict mode
     if "slug" in fm:
-        msg = "frontmatter.slug is not allowed (Astro collection generates slugs). Remove it."
+        msg = "frontmatter.slug is not allowed (Astro generates slugs). Remove it."
         if strict_slug:
             errors.append(msg)
         else:
@@ -64,20 +55,51 @@ def check_file(p: Path, strict_slug: bool = False):
 
     return errors, warnings
 
+def collect_markdown_paths(inputs):
+    """
+    Accept zero or more inputs (files/dirs/globs). If none, use DEFAULT_DIR.
+    Return a de-duplicated list of .md files.
+    """
+    paths = []
+    if not inputs:
+        root = Path(DEFAULT_DIR)
+        if root.exists():
+            paths.extend(sorted(root.rglob("*.md")))
+    else:
+        for s in inputs:
+            # glob patterns
+            if any(ch in s for ch in "*?[]"):
+                for m in glob.glob(s, recursive=True):
+                    mp = Path(m)
+                    if mp.is_dir():
+                        paths.extend(mp.rglob("*.md"))
+                    elif mp.is_file() and mp.suffix.lower() == ".md":
+                        paths.append(mp)
+            else:
+                p = Path(s)
+                if p.is_dir():
+                    paths.extend(p.rglob("*.md"))
+                elif p.is_file() and p.suffix.lower() == ".md":
+                    paths.append(p)
+
+    # de-dup while preserving order
+    seen, out = set(), []
+    for p in paths:
+        sp = str(Path(p).resolve())
+        if sp not in seen:
+            seen.add(sp)
+            out.append(Path(sp))
+    return out
+
 def main():
     ap = argparse.ArgumentParser(description="Frontmatter QA for posts")
-    ap.add_argument("posts_dir", nargs="?", default=DEFAULT_DIR, help="Directory with Markdown posts")
+    ap.add_argument("paths", nargs="*", help="Files or directories (globs ok). Default: apps/site/src/content/posts")
     ap.add_argument("--strict-slug", action="store_true", help="Treat presence of slug in frontmatter as an error")
     args = ap.parse_args()
 
-    root = Path(args.posts_dir)
-    if not root.exists():
-        print(f"ERROR: directory not found: {root}", file=sys.stderr)
-        sys.exit(2)
-
-    md_files = sorted([p for p in root.rglob("*.md") if p.is_file()])
+    md_files = collect_markdown_paths(args.paths)
     if not md_files:
-        print(f"No markdown files found under {root}")
+        print("No markdown files found; nothing to check.")
         sys.exit(0)
 
     any_errors = False
