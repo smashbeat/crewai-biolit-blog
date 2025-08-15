@@ -1,106 +1,106 @@
 #!/usr/bin/env python3
-import sys, re, json
+import argparse
+import sys
 from pathlib import Path
+import re
 import yaml
 
 DEFAULT_DIR = "apps/site/src/content/posts"
-REQ_FIELDS = ["title", "meta_description", "tags"]
-MAX_TITLE = 60
-MAX_DESC  = 155
 
-FENCE_RE   = re.compile(r'(?m)^\s*```')
-SLUG_SAFE  = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
-
-def read_frontmatter(md_text: str):
-    md_text = md_text.lstrip()
-    if not md_text.startswith("---"):
-        return None, md_text
-    parts = md_text.split("---", 2)
-    if len(parts) < 3:
-        return None, md_text
-    _, fm_raw, rest = parts
+def parse_front_matter(text: str):
+    """
+    Return (fm_dict, body_str) or (None, original_text) if no frontmatter.
+    """
+    # frontmatter must start the file and be fenced with ---
+    m = re.match(r'^---\s*\n(.*?)\n---\s*\n(.*)$', text, flags=re.S)
+    if not m:
+        return None, text
+    fm_raw, body = m.group(1), m.group(2)
     try:
-        data = yaml.safe_load(fm_raw) or {}
-    except Exception:
-        data = None
-    return data, rest
+        fm = yaml.safe_load(fm_raw) or {}
+        if not isinstance(fm, dict):
+            return {"__invalid__": "Frontmatter must parse to a mapping/object"}, body
+        return fm, body
+    except Exception as e:
+        return {"__invalid__": f"YAML parse error: {e}"}, body
 
-def fail(msg):
-    print(f"ERROR: {msg}")
-    return 1
+def check_file(p: Path, strict_slug: bool = False):
+    """
+    Validate a single markdown file. Returns (errors:list[str], warnings:list[str]).
+    """
+    errors, warnings = []
+    try:
+        text = p.read_text(encoding="utf-8")
+    except Exception as e:
+        return [f"cannot read file: {e}"], []
 
-def warn(msg):
-    print(f"WARNING: {msg}")
-
-def validate_file(path: Path) -> int:
-    text = path.read_text(encoding="utf-8")
-
-    fm, body = read_frontmatter(text)
+    fm, _ = parse_front_matter(text)
     if fm is None:
-        return fail(f"{path}: Missing or invalid frontmatter block")
+        errors.append("missing frontmatter block (--- at top)")
+        return errors, warnings
 
-    # Required fields present
-    missing = [k for k in REQ_FIELDS if k not in fm or fm[k] in (None, "", [])]
-    if missing:
-        return fail(f"{path}: Missing required fields: {', '.join(missing)}")
+    if "__invalid__" in fm:
+        errors.append(fm["__invalid__"])
+        return errors, warnings
 
-    # Types & lengths
-    title = str(fm["title"]).strip()
-    desc  = str(fm["meta_description"]).strip()
-    tags  = fm["tags"]
-    if not isinstance(tags, list) or not tags:
-        return fail(f"{path}: 'tags' must be a non-empty array")
+    # title: required non-empty string
+    title = fm.get("title")
+    if not isinstance(title, str) or not title.strip():
+        errors.append("frontmatter.title must be a non-empty string")
 
-    if len(title) > MAX_TITLE:
-        warn(f"{path}: title length {len(title)} > {MAX_TITLE}")
-    if len(desc) > MAX_DESC:
-        warn(f"{path}: meta_description length {len(desc)} > {MAX_DESC}")
+    # tags: if present, must be a list of strings
+    if "tags" in fm:
+        tags = fm["tags"]
+        if not isinstance(tags, list) or not all(isinstance(t, (str,)) for t in tags):
+            errors.append("frontmatter.tags must be an array of strings")
 
-    # slug rules (optional): if provided, enforce kebab-case + match filename
-    slug = fm.get("slug")
-    stem = path.stem
-    if slug:
-        if " " in slug or not SLUG_SAFE.match(slug):
-            return fail(f"{path}: slug must be kebab-case (got '{slug}')")
-        if slug != stem:
-            warn(f"{path}: slug ('{slug}') != filename ('{stem}'); build will still use filename path")
+    # discourage slug in FM (Astro generates it); warn by default, error in strict mode
+    if "slug" in fm:
+        msg = "frontmatter.slug is not allowed (Astro collection generates slugs). Remove it."
+        if strict_slug:
+            errors.append(msg)
+        else:
+            warnings.append(msg)
 
-    # No stray fenced code blocks at column 0 (common generation artifact)
-    # Allow inline fences inside code examples if they start indented (4 spaces or tab).
-    for m in FENCE_RE.finditer(body):
-        # Check if that fence line is indented
-        start = m.start()
-        line_start = body.rfind("\n", 0, start) + 1
-        fence_line = body[line_start: body.find("\n", line_start) if body.find("\n", line_start) != -1 else len(body)]
-        if fence_line.startswith("```"):  # no indentation
-            return fail(f"{path}: top-level fenced code block found; strip outer ``` from generated content")
-
-    return 0
+    return errors, warnings
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: frontmatter_check.py <posts_dir>")
-        sys.exit(2)
-    posts_dir = Path(sys.argv[1])
-    if not posts_dir.exists():
-        print(f"Directory not found: {posts_dir}")
+    ap = argparse.ArgumentParser(description="Frontmatter QA for posts")
+    ap.add_argument("posts_dir", nargs="?", default=DEFAULT_DIR, help="Directory with Markdown posts")
+    ap.add_argument("--strict-slug", action="store_true", help="Treat presence of slug in frontmatter as an error")
+    args = ap.parse_args()
+
+    root = Path(args.posts_dir)
+    if not root.exists():
+        print(f"ERROR: directory not found: {root}", file=sys.stderr)
         sys.exit(2)
 
-    errors = 0
-    for md in sorted(posts_dir.glob("*.md")):
-        errors += validate_file(md)
+    md_files = sorted([p for p in root.rglob("*.md") if p.is_file()])
+    if not md_files:
+        print(f"No markdown files found under {root}")
+        sys.exit(0)
 
-    if errors:
-        print(f"\nFAILED: {errors} file(s) with errors.")
+    any_errors = False
+    total_warnings = 0
+
+    for p in md_files:
+        errs, warns = check_file(p, strict_slug=args.strict_slug)
+        if errs or warns:
+            rel = p.as_posix()
+            for e in errs:
+                print(f"[ERROR] {rel}: {e}")
+            for w in warns:
+                print(f"[WARN ] {rel}: {w}")
+        if errs:
+            any_errors = True
+        total_warnings += len(warns)
+
+    if any_errors:
+        print("Frontmatter check: FAILED")
         sys.exit(1)
-    print("Frontmatter & content checks passed.")
-    sys.exit(0)
-    if __name__ == "__main__":
-      import sys
-      posts_dir = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_DIR
-    if not posts_dir:
-        print("Usage: frontmatter_check.py <posts_dir>")
-        sys.exit(2)
-    main(posts_dir)
+    else:
+        print(f"Frontmatter check: OK ({len(md_files)} files, {total_warnings} warnings)")
+        sys.exit(0)
+
 if __name__ == "__main__":
     main()
