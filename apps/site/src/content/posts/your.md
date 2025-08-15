@@ -83,4 +83,4 @@ In the end, as a rider, making informed choices is your best defense on the road
     "name": "Your Company"
   }
 }
-</script>
+</script> # harmless newline
