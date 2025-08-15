@@ -8,7 +8,7 @@ max_redirects = 10
 follow_location = true
 
 # Don’t scan built artifacts
-exclude_path = ["apps/site/dist/**"]
+#exclude_path = ["apps/site/dist/**"]
 
 # Ignore non-HTTP links & a few noisy hosts/patterns
 exclude = [
@@ -19,4 +19,11 @@ exclude = [
   "://example.com",
   "token.actions.githubusercontent.com",
   "^https?://biolitcicd\\.s3-website-[a-z0-9-]+\\.amazonaws\\.com"
+]
+
+exclude_path = [
+  "node_modules",
+  "apps/site/dist",
+  ".git",
+  ".venv"
 ]
