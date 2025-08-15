@@ -14,7 +14,7 @@ Motorcycle riding offers a unique sense of freedom and adventure, but it also co
 
 ### Predicting Hazards
 
-To minimize the risk of collisions, riders must be adept at predicting how potential hazards may affect them. This involves understanding the speed, distance, and direction of other vehicles and obstacles on the road. For instance, if a car is approaching from a side street, a rider must assess how fast the vehicle is traveling and whether it will enter their path. This skill is crucial, as over half of motorcycle collisions with passenger vehicles occur when drivers enter a rider's right-of-way [p.32]. 
+To minimize the risk of collisions, riders must be adept at predicting how potential hazards may affect them. This involves understanding the speed, distance, and direction of other vehicles and obstacles on the road. For instance, if a car is approaching from a side street, a rider must assess how fast the vehicle is traveling and whether it will enter their path. This skill is crucial, as over half of motorcycle collisions with passenger vehicles occur when drivers enter a rider's right-of-way [p.32].
 
 ### The Role of Communication
 
@@ -38,7 +38,7 @@ One of the most critical safety measures for motorcycle riders is the use of hel
 
 ### Choosing the Right Helmet
 
-When selecting a helmet, riders should look for features such as proper fit, comfort, and safety ratings. A well-fitted helmet should sit snugly on the head without being overly tight. Additionally, riders should consider helmets with face shields or visors to protect against wind, debris, and weather conditions. 
+When selecting a helmet, riders should look for features such as proper fit, comfort, and safety ratings. A well-fitted helmet should sit snugly on the head without being overly tight. Additionally, riders should consider helmets with face shields or visors to protect against wind, debris, and weather conditions.
 
 ## Speed Adjustment and Lane Positioning
 
@@ -64,6 +64,7 @@ In conclusion, motorcycle safety is a multifaceted issue that requires awareness
 ```
 
 ## FAQs
+
 **Q: What are the key factors in motorcycle safety?**
 
 Key factors include awareness of surroundings, effective communication with other road users, and proper gear, especially helmets.
@@ -79,7 +80,6 @@ Wearing a DOT-compliant helmet can reduce head injuries by 50%, making it a crit
 **Q: What should I consider when choosing a helmet?**
 
 Look for a helmet that fits snugly, is comfortable, and has high safety ratings, including features like face shields for added protection.
-
 
 <script type="application/ld+json">
 {
