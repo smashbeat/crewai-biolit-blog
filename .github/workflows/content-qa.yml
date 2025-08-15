@@ -1,0 +1,61 @@
+name: Content QA (frontmatter + links + markdown)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/site/src/content/**/*.md"
+      - "apps/site/src/pages/**/*.astro"
+      - ".github/workflows/content-qa.yml"
+      - "scripts/frontmatter_check.py"
+      - ".markdownlint.json"
+      - ".lychee.toml"
+  workflow_dispatch: {}
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: content-qa-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --- Markdown lint ---
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Markdownlint
+        run: |
+          npx --yes markdownlint-cli2 \
+            "apps/site/src/content/**/*.md" \
+            --config .markdownlint.json
+
+      # --- Link checker ---
+      - name: Link check (lychee)
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >
+            --config .lychee.toml
+            --verbose
+            --no-progress
+            "apps/site/src/content/**/*.md"
+            "apps/site/src/pages/**/*.astro"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Frontmatter validation ---
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install deps (frontmatter)
+        run: python -m pip install --upgrade pip pyyaml
+
+      - name: Validate frontmatter & content
+        run: python scripts/frontmatter_check.py apps/site/src/content/posts
