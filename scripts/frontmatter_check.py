@@ -3,6 +3,7 @@ import sys, re, json
 from pathlib import Path
 import yaml
 
+DEFAULT_DIR = "apps/site/src/content/posts"
 REQ_FIELDS = ["title", "meta_description", "tags"]
 MAX_TITLE = 60
 MAX_DESC  = 155
@@ -94,6 +95,12 @@ def main():
         sys.exit(1)
     print("Frontmatter & content checks passed.")
     sys.exit(0)
-
+    if __name__ == "__main__":
+      import sys
+      posts_dir = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_DIR
+    if not posts_dir:
+        print("Usage: frontmatter_check.py <posts_dir>")
+        sys.exit(2)
+    main(posts_dir)
 if __name__ == "__main__":
     main()
