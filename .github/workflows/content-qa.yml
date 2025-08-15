@@ -50,3 +50,6 @@ jobs:
             apps/site/src/content/posts/**/*.md
           failIfEmpty: false
           jobSummary: true
+      - name: Frontmatter check
+        run: |
+          python3 scripts/frontmatter_check.py apps/site/src/content/posts
