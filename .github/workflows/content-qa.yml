@@ -1,0 +1,55 @@
+name: Content QA (frontmatter + links + markdown)
+
+on:
+  pull_request:
+    paths:
+      - "apps/site/src/content/posts/**"
+      - ".github/workflows/content-qa.yml"
+      - ".lychee.toml"
+  workflow_dispatch: {}
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Needed for markdownlint via npx
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Markdownlint
+        run: |
+          npx --yes markdownlint-cli2 \
+            "apps/site/src/content/**/*.md" \
+            --config .markdownlint.json
+
+      - name: Frontmatter sanity
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyyaml
+          python scripts/frontmatter_check.py apps/site/src/content/posts/*.md
+
+      - name: Debug workspace
+        run: |
+          echo "pwd=$(pwd)"
+          ls -la
+          echo "--- posts ---"
+          ls -R apps/site/src/content/posts || true
+
+      - name: Link check (lychee)
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # Lychee parses globs itself
+          args: >
+            --no-progress
+            --config .lychee.toml
+            apps/site/src/content/posts/*.md
+            apps/site/src/content/posts/**/*.md
+          failIfEmpty: false
+          jobSummary: true
+      - name: Frontmatter check
+        run: |
+          python3 scripts/frontmatter_check.py apps/site/src/content/posts

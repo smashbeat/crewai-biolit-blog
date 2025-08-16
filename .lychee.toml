@@ -1,0 +1,29 @@
+# .lychee.toml — link checker config
+
+# Networking
+timeout = 20            # seconds
+max_retries = 2
+retry_wait_time = 2     # seconds
+max_redirects = 10
+follow_location = true
+
+# Don’t scan built artifacts
+#exclude_path = ["apps/site/dist/**"]
+
+# Ignore non-HTTP links & a few noisy hosts/patterns
+exclude = [
+  "^mailto:",
+  "^tel:",
+  "localhost",
+  "127.0.0.1",
+  "://example.com",
+  "token.actions.githubusercontent.com",
+  "^https?://biolitcicd\\.s3-website-[a-z0-9-]+\\.amazonaws\\.com"
+]
+
+exclude_path = [
+  "node_modules",
+  "apps/site/dist",
+  ".git",
+  ".venv"
+]

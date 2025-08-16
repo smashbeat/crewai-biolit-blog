@@ -24,7 +24,7 @@ One of the most significant risks for motorcyclists comes from other vehicles. R
 
 ### Communicating Intentions
 
-Effective communication is a key strategy for minimizing risks on the road. Riders can use hand signals, head movements, and even their motorcycle's lights to communicate their intentions to other drivers. This not only helps in making their presence known but also encourages other road users to be more cautious. 
+Effective communication is a key strategy for minimizing risks on the road. Riders can use hand signals, head movements, and even their motorcycle's lights to communicate their intentions to other drivers. This not only helps in making their presence known but also encourages other road users to be more cautious.
 
 ### Adjusting Speed
 
@@ -60,6 +60,7 @@ By prioritizing safety and staying informed, motorcycle riders can enjoy the thr
 ```
 
 ## FAQs
+
 **Q: What are common motorcycle safety hazards?**
 
 Common hazards include other vehicles entering a rider's right-of-way, poor road conditions, and unpredictable actions from pedestrians.
@@ -75,7 +76,6 @@ Protective gear, especially helmets, significantly reduces the risk of head inju
 **Q: What is the motorcycle skills test?**
 
 The motorcycle skills test evaluates a rider's ability to control their motorcycle through various maneuvers and safety checks.
-
 
 <script type="application/ld+json">
 {

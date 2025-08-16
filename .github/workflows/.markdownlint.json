@@ -1,0 +1,9 @@
+{
+  "default": true,
+  "MD013": false,                // line length off (SEO/meta blocks can be long)
+  "MD033": { "allowed_elements": ["script"] }, // allow JSON-LD blocks
+  "MD041": false,                // first line need not be a heading (we have frontmatter)
+  "MD004": { "style": "dash" },  // list marker style
+  "MD007": { "indent": 2 },      // list indent
+  "MD029": false                 // ordered list item numbers can restart
+}
