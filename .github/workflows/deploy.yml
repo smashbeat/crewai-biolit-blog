@@ -3,10 +3,10 @@ name: Deploy Site (S3 + CloudFront)
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'apps/site/**'
-      - '.github/workflows/deploy.yml'
+      - "apps/site/**"
+      - ".github/workflows/deploy.yml"
 
 permissions:
   id-token: write
@@ -15,7 +15,7 @@ permissions:
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   S3_BUCKET: ${{ vars.S3_BUCKET }}
-  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}            # e.g. arn:aws:iam::134856927288:role/github-oidc-deploy
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }} # e.g. arn:aws:iam::123456789012:role/github-oidc-deploy
   CF_DISTRIBUTION_ID: ${{ vars.CF_DISTRIBUTION_ID }} # optional
 
 jobs:
@@ -31,9 +31,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'apps/site/package-lock.json'
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "apps/site/package-lock.json"
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -51,25 +51,39 @@ jobs:
           npm ci || npm i
           npm run build
 
-      # HTML first with no-cache (so updates show immediately)
-      - name: Upload HTML with no-cache
+      - name: Sync to S3 with targeted Cache-Control
+        working-directory: apps/site
         run: |
-          aws s3 cp apps/site/dist/ s3://${S3_BUCKET} \
-            --recursive --exclude "*" --include "*.html" \
-            --cache-control "max-age=0, must-revalidate"
+          set -euo pipefail
 
-      # Assets with long cache (Astro uses hashed filenames)
-      - name: Upload assets with long cache
-        run: |
-          aws s3 sync apps/site/dist/ s3://${S3_BUCKET} \
-            --delete --exclude "*.html" \
-            --cache-control "public, max-age=31536000, immutable"
+          # 1) Baseline sync (gets everything up there with correct Content-Type)
+          aws s3 sync dist/ "s3://${S3_BUCKET}/" --delete
 
-      # Optional invalidation if CF is configured
+          # 2) Long-cache for static assets (immutable, hashed filenames)
+          aws s3 cp --recursive dist/ "s3://${S3_BUCKET}/" \
+            --exclude "*" \
+            --include "*.css" --include "*.js" --include "*.mjs" \
+            --include "*.svg" --include "*.png" --include "*.jpg" --include "*.jpeg" --include "*.webp" \
+            --include "*.ico" --include "*.woff" --include "*.woff2" \
+            --cache-control "public, max-age=31536000, immutable" \
+            --metadata-directive REPLACE
+
+          # 3) Short cache for HTML (let users see changes quickly)
+          aws s3 cp --recursive dist/ "s3://${S3_BUCKET}/" \
+            --exclude "*" --include "*.html" \
+            --cache-control "public, max-age=60" \
+            --metadata-directive REPLACE
+
+          # 4) Short cache for metadata files (sitemap/rss/robots)
+          aws s3 cp --recursive dist/ "s3://${S3_BUCKET}/" \
+            --exclude "*" \
+            --include "sitemap*.xml" --include "rss.xml" --include "robots.txt" \
+            --cache-control "public, max-age=300" \
+            --metadata-directive REPLACE
+
       - name: Invalidate CloudFront
         if: env.CF_DISTRIBUTION_ID != ''
         run: |
           aws cloudfront create-invalidation \
             --distribution-id "${CF_DISTRIBUTION_ID}" \
             --paths "/index.html" "/posts/*" "/tags/*" "/rss.xml" "/sitemap-index.xml"
-

@@ -5,7 +5,15 @@ on:
     paths:
       - "apps/site/src/content/posts/**"
       - ".github/workflows/content-qa.yml"
-      - ".lychee.toml"
+      - "scripts/**"
+  push:
+    branches: [main]
+    paths:
+      - "apps/site/src/content/posts/**"
+      - ".github/workflows/content-qa.yml"
+      - "scripts/**"
+  schedule:
+    - cron: "23 3 * * *" # every night at 03:23 UTC (pick any minute)
   workflow_dispatch: {}
 
 jobs:
